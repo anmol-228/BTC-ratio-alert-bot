@@ -1,27 +1,87 @@
-# Delta BTC Ratio Alert Bot
+# BTC Ratio Alert Bot
 
-Async Telegram bot for scanning Delta Exchange BTC options across all expiries, alerting on configurable `1:N` ratio spread credits.
+Alert-only Telegram bot for scanning Delta Exchange BTC options and detecting configurable `1:N` ratio spread opportunities across all available expiries.
 
-## What it scans
+[![Python Tests](https://github.com/anmol-228/BTC-ratio-alert-bot/actions/workflows/tests.yml/badge.svg)](https://github.com/anmol-228/BTC-ratio-alert-bot/actions/workflows/tests.yml)
 
-- BTC options
-- All live expiries returned by Delta Exchange
-- Dynamic ratios from `1:3` through `1:8` by default
-- OTM buy/sell strike pairs at least 3000 points apart and 2000 points from spot
-- Net credit/inflow strictly greater than `min_net_inflow_usd` (default 35), no upper cap
-- Sends all matching opportunities (subject to cooldown / re-alert rules)
+## What It Does
 
-## Quick start
+- Scans BTC options only.
+- Uses Delta Exchange REST market data.
+- Monitors all active BTC option expiries.
+- Evaluates call and put ratio spreads.
+- Checks dynamic ratios from `1:3` through `1:8` by default.
+- Uses raw Delta quote premiums.
+- Uses best ask for the buy leg and best bid for the sell leg.
+- Falls back to mark price when bid/ask is missing, if configured.
+- Requires the buy leg to be at least `2000` points away from BTC spot by default.
+- Requires net inflow inside the configured range, currently greater than `$20` and up to `$100`.
+- Requires a negative same-gap, same-ratio ATM reference spread before alerting.
+- Sends matching opportunities to a Telegram group.
+
+## Strategy Rule Summary
+
+For each candidate:
+
+```text
+net_inflow = (ratio * sell_price) - buy_price
+```
+
+Current live filters:
+
+- Underlying: BTC only
+- Data mode: REST polling
+- Ratios: `1:3` to `1:8`
+- Net inflow: `> 20` and `<= 100`
+- Minimum buy-leg OTM distance: `2000`
+- Strike gap: configurable, currently no fixed min/max
+- Confirmation: same-gap ATM spread must be negative
+- Cooldown: `900` seconds
+- Re-alert: enabled if net inflow improves by `$20` or more
+
+The bot does not place trades.
+
+## Quick Start
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
 cp config.example.toml config.toml
 python3 -m delta_ratio_bot --config config.toml --health-check
 ```
 
-Local demo while Telegram is unavailable:
+Set Telegram credentials in `.env`:
+
+```bash
+TELEGRAM_BOT_TOKEN=replace_with_bot_token
+TELEGRAM_CHAT_ID=-100replace_with_group_chat_id
+```
+
+Never commit a real `.env` file.
+
+## Commands
+
+Test Telegram without scanning Delta:
+
+```bash
+python3 -m delta_ratio_bot --config config.toml --test-telegram
+```
+
+Run one live scan:
+
+```bash
+python3 -m delta_ratio_bot --config config.toml --once
+```
+
+Run continuously:
+
+```bash
+python3 -m delta_ratio_bot --config config.toml
+```
+
+Run a local dry-run demo without Telegram:
 
 ```bash
 python3 -m delta_ratio_bot --config config.local-demo.toml --once
@@ -33,48 +93,44 @@ or:
 ./scripts/demo_local.sh
 ```
 
-This prints matching alerts locally instead of sending Telegram messages.
+## Deployment
 
-The live config uses `dry_run = false`. Set Telegram credentials in `config.toml` or via environment variables:
+For a persistent Linux deployment, use the example systemd unit:
 
-```bash
-export TELEGRAM_BOT_TOKEN="replace_with_bot_token"
-export TELEGRAM_CHAT_ID="-100replace_with_group_chat_id"
-```
+[deployment/delta-ratio-bot.service.example](deployment/delta-ratio-bot.service.example)
 
-Test Telegram connectivity without scanning Delta:
+Replace `/opt/delta-ratio-bot` with your actual deployment path. Keep `.env` private.
 
-```bash
-python3 -m delta_ratio_bot --config config.toml --test-telegram
-```
+## Documentation
 
-Run one scan:
+- [LIVE_SETTINGS.md](LIVE_SETTINGS.md): current live configuration and strategy assumptions
+- [PROJECT_VALIDATION_DOCUMENT.md](PROJECT_VALIDATION_DOCUMENT.md): detailed technical and market validation notes
+- [RUNBOOK.md](RUNBOOK.md): operational commands
+- [FINAL_HANDOVER.md](FINAL_HANDOVER.md): client handover summary
 
-```bash
-python3 -m delta_ratio_bot --config config.toml --once
-```
+## Safety And Scope
 
-Then run continuously:
+This is an alert-only scanner.
 
-```bash
-python3 -m delta_ratio_bot --config config.toml
-```
+It does not:
 
-## Notes
+- place trades
+- use private Delta API keys
+- check account balance
+- check margin
+- calculate liquidation risk
+- apply fees or slippage
+- enforce liquidity filters
+- store alerts in a database
 
-This live version uses Delta Global REST endpoints for products, tickers, and indices. It is configured for BTC only with `delta.underlying_assets = ["BTC"]`.
+## Limitations
 
-See [LIVE_SETTINGS.md](/Users/mypc/Documents/PUTAN/LIVE_SETTINGS.md) for the full live configuration and trading-logic assumptions.
+1. REST API availability and rate limits can affect scan cycles.
+2. Alerts may not always be executable at displayed prices because no liquidity filter is enforced.
+3. Mark-price fallback can produce less executable signals than strict bid/ask mode.
+4. The strategy has tail risk because ratio spreads sell more options than they buy.
+5. This repository is software only, not financial advice.
 
-## MVP Limitations
+## License
 
-1. REST API availability/rate limits can affect scan cycles, but errors are handled safely.
-2. No liquidity filters are enforced, so alerts may not always be executable at displayed quantity/price.
-3. No trading, margin, fee, slippage, or risk checks are included.
-4. The bot is alert-only and does not place trades.
-
-## systemd
-
-See [deployment/delta-ratio-bot.service.example](/Users/mypc/Documents/PUTAN/deployment/delta-ratio-bot.service.example).
-
-Replace `/opt/delta-ratio-bot` with the real deployment path if different. Keep `.env` private and never commit a real Telegram token.
+MIT License. See [LICENSE](LICENSE).
