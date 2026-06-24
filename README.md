@@ -2,8 +2,6 @@
 
 Alert-only Telegram bot for scanning Delta Exchange BTC options and detecting configurable `1:N` ratio spread opportunities across all available expiries.
 
-[![Python Tests](https://github.com/anmol-228/BTC-ratio-alert-bot/actions/workflows/tests.yml/badge.svg)](https://github.com/anmol-228/BTC-ratio-alert-bot/actions/workflows/tests.yml)
-
 ## What It Does
 
 - Scans BTC options only.
