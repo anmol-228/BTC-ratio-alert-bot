@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Local/runtime artifacts
+logs/
+*.log
+*.pid
+*.bak
+.DS_Store

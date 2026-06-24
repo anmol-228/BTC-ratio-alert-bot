@@ -1,0 +1,47 @@
+base_url = "https://api.india.delta.exchange"
+underlying_assets = ["BTC"]
+request_timeout_seconds = 15
+
+[market_data]
+mode = "rest"
+use_websocket = false
+scan_frequency_seconds = 5
+max_consecutive_failures_before_backoff = 3
+backoff_seconds = 30
+
+[strategy]
+enable_calls = true
+enable_puts = true
+ratio_min = 3
+ratio_max = 8
+min_net_inflow_usd = 20
+max_net_inflow_usd = 100
+min_strike_difference = 0
+max_strike_difference = 0
+min_otm_distance = 2000
+require_negative_atm_spread = true
+
+premium_mode = "bid_ask"
+fallback_to_mark_price = true
+require_bid_ask = false
+premium_multiplier_mode = "raw"
+
+expiry_include = []
+expiry_exclude = []
+
+[alerts]
+dry_run = true
+cooldown_seconds = 900
+send_all_matching_opportunities = true
+max_alerts_per_scan = 0
+
+realert_if_inflow_improves = true
+realert_if_inflow_improves_by = 20
+
+telegram_bot_token = ""
+telegram_chat_id = ""
+
+[logging]
+level = "INFO"
+save_alerts_csv = false
+save_opportunities_db = false

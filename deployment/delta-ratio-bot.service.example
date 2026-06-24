@@ -1,0 +1,16 @@
+[Unit]
+Description=Delta Exchange BTC Options Ratio Alert Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/delta-ratio-bot
+EnvironmentFile=/opt/delta-ratio-bot/.env
+ExecStart=/opt/delta-ratio-bot/.venv/bin/python -m delta_ratio_bot --config config.toml
+Restart=always
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
