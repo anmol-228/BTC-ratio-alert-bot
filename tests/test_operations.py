@@ -22,7 +22,7 @@ backoff_seconds = 30
 
 [strategy]
 enable_calls = true
-enable_puts = true
+enable_puts = false
 ratio_min = 3
 ratio_max = 8
 min_net_inflow_usd = 20
@@ -30,6 +30,7 @@ max_net_inflow_usd = 100
 min_strike_difference = 0
 max_strike_difference = 0
 min_otm_distance = 2000
+max_sell_premium_percent_of_buy = 60
 require_negative_atm_spread = true
 premium_mode = "bid_ask"
 fallback_to_mark_price = true
@@ -94,6 +95,11 @@ class OperationsTest(unittest.TestCase):
 
         self.assertEqual(config.market_data.max_consecutive_failures_before_backoff, 3)
         self.assertEqual(config.market_data.backoff_seconds, 30)
+
+    def test_sell_premium_percent_config_parses_correctly(self) -> None:
+        config = load_config(write_config(VALID_CONFIG))
+
+        self.assertEqual(config.strategy.max_sell_premium_percent_of_buy, 60)
 
 
 if __name__ == "__main__":

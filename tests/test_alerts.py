@@ -2,7 +2,7 @@ from datetime import date
 import asyncio
 import unittest
 
-from delta_ratio_bot.alerts import AlertDeduper, TelegramNotifier
+from delta_ratio_bot.alerts import AlertDeduper, TelegramNotifier, format_alert
 from delta_ratio_bot.app import select_opportunities_for_alert
 from delta_ratio_bot.config import AlertConfig
 from delta_ratio_bot.models import OptionKind, OptionQuote, RatioOpportunity
@@ -87,6 +87,38 @@ class AlertLimitTest(unittest.TestCase):
         )
 
         self.assertEqual(selected, opportunities)
+
+
+class AlertFormatTest(unittest.TestCase):
+    def test_call_alert_uses_requested_compact_format(self) -> None:
+        alert = format_alert(
+            RatioOpportunity(
+                underlying_asset="BTC",
+                kind=OptionKind.CALL,
+                expiry=date(2026, 7, 3),
+                ratio=7,
+                buy=quote("BTC-C-60000", 60000),
+                sell=quote("BTC-C-73000", 73000),
+                buy_price=90,
+                sell_price=20,
+                net_inflow=50,
+                strike_difference=3000,
+                spot_price=62774.5,
+                distance_from_spot=2774.5,
+            )
+        )
+
+        self.assertIn("Trade Opportunity Detected", alert)
+        self.assertIn("Strategy Type:\nCALL \U0001f7e9", alert)
+        self.assertIn("Expiry: 03 July 2026", alert)
+        self.assertIn("Ratio: 1:7", alert)
+        self.assertIn("Net Credit/Inflow:\n+$50", alert)
+        self.assertIn("Buy:\n1x BTC 60,000 CE @ $90", alert)
+        self.assertIn("Sell:\n7x BTC 73,000 CE @ $20", alert)
+        self.assertIn("Strike Difference: 3000", alert)
+        self.assertIn("Distance From Spot:\n2,774.50 points OTM", alert)
+        self.assertIn("BTC Spot Price:\n$62,774.5", alert)
+        self.assertNotIn("ATM Same-Gap Check", alert)
 
 
 class TelegramNotifierTest(unittest.TestCase):

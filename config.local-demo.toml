@@ -1,3 +1,4 @@
+[delta]
 base_url = "https://api.india.delta.exchange"
 underlying_assets = ["BTC"]
 request_timeout_seconds = 15
@@ -11,7 +12,7 @@ backoff_seconds = 30
 
 [strategy]
 enable_calls = true
-enable_puts = true
+enable_puts = false
 ratio_min = 3
 ratio_max = 8
 min_net_inflow_usd = 20
@@ -19,6 +20,7 @@ max_net_inflow_usd = 100
 min_strike_difference = 0
 max_strike_difference = 0
 min_otm_distance = 2000
+max_sell_premium_percent_of_buy = 60
 require_negative_atm_spread = true
 
 premium_mode = "bid_ask"

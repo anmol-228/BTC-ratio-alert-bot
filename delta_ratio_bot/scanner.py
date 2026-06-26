@@ -74,12 +74,16 @@ class RatioScanner:
                 sell_price = self.get_sell_price(sell)
                 if sell_price is None or sell_price <= 0:
                     continue
+                if (
+                    self.config.max_sell_premium_percent_of_buy > 0
+                    and sell_price > buy_price * self.config.max_sell_premium_percent_of_buy / 100
+                ):
+                    continue
 
                 for ratio in self.config.ratios:
                     # Current live mode uses raw Delta quote prices only. Do not multiply by contract_value.
                     net_inflow = ratio * sell_price - buy_price
-                    # Strict greater-than: net_inflow exactly equal to the threshold must NOT alert.
-                    if net_inflow <= self.config.min_net_inflow_usd:
+                    if net_inflow < self.config.min_net_inflow_usd:
                         continue
                     if (
                         self.config.max_net_inflow_usd > 0

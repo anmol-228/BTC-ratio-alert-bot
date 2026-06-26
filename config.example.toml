@@ -12,19 +12,17 @@ backoff_seconds = 30
 
 [strategy]
 enable_calls = true
-enable_puts = true
+enable_puts = false
 ratio_min = 3
 ratio_max = 8
-# Alert only when net_inflow is STRICTLY greater than this value (35.00 does not alert, 35.01 does).
-min_net_inflow_usd = 35
-# 0 = no upper cap (client requirement: send all matching opportunities).
-max_net_inflow_usd = 0
-min_strike_difference = 3000
+min_net_inflow_usd = 20
+max_net_inflow_usd = 100
+min_strike_difference = 0
 # 0 = no maximum strike-difference cap.
 max_strike_difference = 0
 min_otm_distance = 2000
-# Optional extra filter, disabled per confirmed MVP requirements.
-require_negative_atm_spread = false
+max_sell_premium_percent_of_buy = 60
+require_negative_atm_spread = true
 
 premium_mode = "bid_ask"
 fallback_to_mark_price = true

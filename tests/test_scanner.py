@@ -21,6 +21,7 @@ def strategy(**overrides: object) -> StrategyConfig:
         "min_strike_difference": 0,
         "max_strike_difference": 0,
         "min_otm_distance": 2000,
+        "max_sell_premium_percent_of_buy": 0,
         "require_negative_atm_spread": False,
         "premium_mode": "bid_ask",
         "fallback_to_mark_price": True,
@@ -73,42 +74,41 @@ class RatioScannerTest(unittest.TestCase):
         self.assertEqual([item.ratio for item in opportunities], [8, 7, 6, 5, 4])
         self.assertEqual([round(item.net_inflow, 2) for item in opportunities], [56, 47.5, 39, 30.5, 22])
 
-    def test_net_inflow_exactly_at_threshold_does_not_alert(self) -> None:
-        # net_inflow = 3 * 15 - 10 = 35.00, which equals the threshold and must NOT alert.
+    def test_net_inflow_exactly_at_threshold_alerts(self) -> None:
+        # net_inflow = 3 * 10 - 10 = 20.00, which is inside the 20-100 range.
         config = strategy(
             enable_puts=False,
             ratio_min=3,
             ratio_max=3,
-            min_net_inflow_usd=35,
-            max_net_inflow_usd=0,
+            min_net_inflow_usd=20,
+            max_net_inflow_usd=100,
         )
         quotes = [
             quote(OptionKind.CALL, 104000, ask=10),
-            quote(OptionKind.CALL, 107000, bid=15),
-        ]
-
-        opportunities = RatioScanner(config).scan_expiry(EXPIRY, quotes, spot_price=101200)
-
-        self.assertEqual(opportunities, [])
-
-    def test_net_inflow_just_above_threshold_alerts(self) -> None:
-        # net_inflow = 3 * 15.01 - 10 = 35.03 (> 35.00) must alert.
-        config = strategy(
-            enable_puts=False,
-            ratio_min=3,
-            ratio_max=3,
-            min_net_inflow_usd=35,
-            max_net_inflow_usd=0,
-        )
-        quotes = [
-            quote(OptionKind.CALL, 104000, ask=10),
-            quote(OptionKind.CALL, 107000, bid=15.01),
+            quote(OptionKind.CALL, 107000, bid=10),
         ]
 
         opportunities = RatioScanner(config).scan_expiry(EXPIRY, quotes, spot_price=101200)
 
         self.assertEqual(len(opportunities), 1)
-        self.assertAlmostEqual(opportunities[0].net_inflow, 35.03, places=2)
+        self.assertEqual(opportunities[0].net_inflow, 20)
+
+    def test_net_inflow_below_threshold_does_not_alert(self) -> None:
+        config = strategy(
+            enable_puts=False,
+            ratio_min=3,
+            ratio_max=3,
+            min_net_inflow_usd=20,
+            max_net_inflow_usd=100,
+        )
+        quotes = [
+            quote(OptionKind.CALL, 104000, ask=10),
+            quote(OptionKind.CALL, 107000, bid=9.99),
+        ]
+
+        opportunities = RatioScanner(config).scan_expiry(EXPIRY, quotes, spot_price=101200)
+
+        self.assertEqual(opportunities, [])
 
     def test_net_inflow_must_not_exceed_max_threshold(self) -> None:
         config = strategy(
@@ -137,6 +137,45 @@ class RatioScannerTest(unittest.TestCase):
         opportunities = RatioScanner(config).scan_expiry(EXPIRY, quotes, spot_price=101200)
 
         self.assertEqual(opportunities, [])
+
+    def test_sell_premium_over_60_percent_of_buy_blocks_candidate(self) -> None:
+        config = strategy(
+            enable_puts=False,
+            ratio_min=8,
+            ratio_max=8,
+            min_net_inflow_usd=20,
+            max_net_inflow_usd=1000,
+            max_sell_premium_percent_of_buy=60,
+        )
+        quotes = [
+            quote(OptionKind.CALL, 104000, ask=90),
+            quote(OptionKind.CALL, 107000, bid=55),
+        ]
+
+        opportunities = RatioScanner(config).scan_expiry(EXPIRY, quotes, spot_price=101200)
+
+        self.assertEqual(opportunities, [])
+
+    def test_sell_premium_equal_to_60_percent_of_buy_is_allowed(self) -> None:
+        config = strategy(
+            enable_puts=False,
+            ratio_min=3,
+            ratio_max=3,
+            min_net_inflow_usd=20,
+            max_net_inflow_usd=100,
+            max_sell_premium_percent_of_buy=60,
+        )
+        quotes = [
+            quote(OptionKind.CALL, 104000, ask=90),
+            quote(OptionKind.CALL, 107000, bid=54),
+        ]
+
+        opportunities = RatioScanner(config).scan_expiry(EXPIRY, quotes, spot_price=101200)
+
+        self.assertEqual(len(opportunities), 1)
+        self.assertEqual(opportunities[0].buy_price, 90)
+        self.assertEqual(opportunities[0].sell_price, 54)
+        self.assertEqual(opportunities[0].net_inflow, 72)
 
     def test_call_direction_requires_buy_above_spot_and_sell_above_buy(self) -> None:
         config = strategy(enable_puts=False, ratio_min=8, ratio_max=8, max_net_inflow_usd=1000)

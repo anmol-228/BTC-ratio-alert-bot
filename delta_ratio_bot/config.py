@@ -33,6 +33,7 @@ class StrategyConfig:
     min_strike_difference: float
     max_strike_difference: float
     min_otm_distance: float
+    max_sell_premium_percent_of_buy: float
     require_negative_atm_spread: bool
     premium_mode: str
     fallback_to_mark_price: bool
@@ -112,12 +113,15 @@ def load_config(path: str | Path) -> AppConfig:
     if use_websocket:
         raise ValueError("market_data.use_websocket must be false for the REST live version")
     underlying_assets = _load_underlying_assets(delta)
-    min_net_inflow_usd = float(strategy.get("min_net_inflow_usd", 35))
-    # 0 disables the optional upper cap (client requirement: send all matching opportunities).
+    min_net_inflow_usd = float(strategy.get("min_net_inflow_usd", 20))
+    # 0 disables the optional upper cap.
     max_net_inflow_usd = float(strategy.get("max_net_inflow_usd", 0))
     min_strike_difference = float(strategy.get("min_strike_difference", 0))
     max_strike_difference = float(strategy.get("max_strike_difference", 0))
     min_otm_distance = float(strategy.get("min_otm_distance", 2000))
+    max_sell_premium_percent_of_buy = float(
+        strategy.get("max_sell_premium_percent_of_buy", 60)
+    )
     cooldown_seconds = float(alerts.get("cooldown_seconds", 900))
     realert_by = float(alerts.get("realert_if_inflow_improves_by", 20))
     max_alerts_per_scan = int(alerts.get("max_alerts_per_scan", 0))
@@ -136,6 +140,7 @@ def load_config(path: str | Path) -> AppConfig:
             "strategy.min_strike_difference": min_strike_difference,
             "strategy.max_strike_difference": max_strike_difference,
             "strategy.min_otm_distance": min_otm_distance,
+            "strategy.max_sell_premium_percent_of_buy": max_sell_premium_percent_of_buy,
             "alerts.cooldown_seconds": cooldown_seconds,
             "alerts.realert_if_inflow_improves_by": realert_by,
             "alerts.max_alerts_per_scan": float(max_alerts_per_scan),
@@ -168,7 +173,8 @@ def load_config(path: str | Path) -> AppConfig:
             min_strike_difference=min_strike_difference,
             max_strike_difference=max_strike_difference,
             min_otm_distance=min_otm_distance,
-            require_negative_atm_spread=bool(strategy.get("require_negative_atm_spread", False)),
+            max_sell_premium_percent_of_buy=max_sell_premium_percent_of_buy,
+            require_negative_atm_spread=bool(strategy.get("require_negative_atm_spread", True)),
             premium_mode=premium_mode,
             fallback_to_mark_price=bool(strategy.get("fallback_to_mark_price", True)),
             require_bid_ask=bool(strategy.get("require_bid_ask", False)),
@@ -224,6 +230,7 @@ def _load_asset_overrides(raw_overrides: dict) -> dict[str, dict]:
         "min_strike_difference",
         "max_strike_difference",
         "min_otm_distance",
+        "max_sell_premium_percent_of_buy",
         "require_negative_atm_spread",
         "premium_mode",
         "fallback_to_mark_price",
@@ -245,6 +252,7 @@ def _load_asset_overrides(raw_overrides: dict) -> dict[str, dict]:
             "min_strike_difference",
             "max_strike_difference",
             "min_otm_distance",
+            "max_sell_premium_percent_of_buy",
         ):
             if key in values:
                 values[key] = float(values[key])

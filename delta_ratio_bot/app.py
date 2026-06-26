@@ -235,12 +235,18 @@ def run_health_check(config: AppConfig) -> int:
         else f"{config.strategy.max_net_inflow_usd:g}"
     )
     print(
-        "net inflow: strictly greater than "
-        f"{config.strategy.min_net_inflow_usd:g} (upper bound: {inflow_cap})"
+        "net inflow range: "
+        f"{config.strategy.min_net_inflow_usd:g} to {inflow_cap}"
     )
     print(f"min strike difference: {config.strategy.min_strike_difference:g}")
     print(f"max strike difference: {config.strategy.max_strike_difference:g}")
     print(f"min OTM distance: {config.strategy.min_otm_distance:g}")
+    sell_to_buy_cap = (
+        "no cap"
+        if config.strategy.max_sell_premium_percent_of_buy <= 0
+        else f"{config.strategy.max_sell_premium_percent_of_buy:g}%"
+    )
+    print(f"max sell premium vs buy premium: {sell_to_buy_cap}")
     print(f"negative ATM same-gap required: {config.strategy.require_negative_atm_spread}")
     print(f"cooldown seconds: {config.alerts.cooldown_seconds:g}")
     print(f"Telegram configured: {'yes' if telegram_configured else 'no'}")

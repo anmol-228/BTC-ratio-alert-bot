@@ -88,37 +88,32 @@ class TelegramNotifier:
 
 
 def format_alert(opportunity: RatioOpportunity) -> str:
-    kind_label = "CALL RATIO SPREAD" if opportunity.kind == OptionKind.CALL else "PUT RATIO SPREAD"
+    kind_label = "CALL \U0001f7e9" if opportunity.kind == OptionKind.CALL else "PUT \U0001f7e5"
     option_suffix = "CE" if opportunity.kind == OptionKind.CALL else "PE"
     lines = [
-            f"{opportunity.underlying_asset} Ratio Trade Opportunity Detected",
+            "Trade Opportunity Detected",
             "",
             "Strategy Type:",
             kind_label,
             "",
-            "Expiry:",
-            opportunity.expiry.strftime("%d %B %Y"),
+            f"Expiry: {opportunity.expiry.strftime('%d %B %Y')}",
+            f"Ratio: 1:{opportunity.ratio}",
             "",
-            "Ratio:",
-            f"1:{opportunity.ratio}",
+            "Net Credit/Inflow:",
+            f"+${_fmt_money(opportunity.net_inflow)}",
             "",
             "Buy:",
             (
                 f"1x {opportunity.underlying_asset} {_fmt_number(opportunity.buy.strike)} {option_suffix} "
                 f"@ ${_fmt_money(opportunity.buy_price)}"
             ),
-            "",
             "Sell:",
             (
                 f"{opportunity.ratio}x {opportunity.underlying_asset} {_fmt_number(opportunity.sell.strike)} {option_suffix} "
                 f"@ ${_fmt_money(opportunity.sell_price)}"
             ),
             "",
-            "Net Credit/Inflow:",
-            f"+${_fmt_money(opportunity.net_inflow)}",
-            "",
-            "Strike Difference:",
-            f"${_fmt_number(opportunity.strike_difference)}",
+            f"Strike Difference: {_fmt_plain_number(opportunity.strike_difference)}",
             "",
             "Distance From Spot:",
             f"{_fmt_number(opportunity.distance_from_spot)} points OTM",
@@ -126,18 +121,6 @@ def format_alert(opportunity: RatioOpportunity) -> str:
             f"{opportunity.underlying_asset} Spot Price:",
             f"${_fmt_money(opportunity.spot_price)}",
     ]
-    if opportunity.atm_buy and opportunity.atm_sell and opportunity.atm_net_inflow is not None:
-        lines.extend(
-            [
-                "",
-                "ATM Same-Gap Check:",
-                (
-                    f"{_fmt_number(opportunity.atm_buy.strike)} / "
-                    f"{_fmt_number(opportunity.atm_sell.strike)} "
-                    f"same ratio spread = ${_fmt_money(opportunity.atm_net_inflow)}"
-                ),
-            ]
-        )
     return "\n".join(lines)
 
 
@@ -148,3 +131,8 @@ def _fmt_money(value: float) -> str:
 def _fmt_number(value: float) -> str:
     value = float(value)
     return f"{value:,.0f}" if value.is_integer() else f"{value:,.2f}"
+
+
+def _fmt_plain_number(value: float) -> str:
+    value = float(value)
+    return f"{value:.0f}" if value.is_integer() else f"{value:.2f}".rstrip("0").rstrip(".")

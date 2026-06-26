@@ -7,13 +7,14 @@ Alert-only Telegram bot for scanning Delta Exchange BTC options and detecting co
 - Scans BTC options only.
 - Uses Delta Exchange REST market data.
 - Monitors all active BTC option expiries.
-- Evaluates call and put ratio spreads.
+- Evaluates call ratio spreads only. Put ratio spreads are disabled for now.
 - Checks dynamic ratios from `1:3` through `1:8` by default.
 - Uses raw Delta quote premiums.
 - Uses best ask for the buy leg and best bid for the sell leg.
 - Falls back to mark price when bid/ask is missing, if configured.
 - Requires the buy leg to be at least `2000` points away from BTC spot by default.
-- Requires net inflow inside the configured range, currently greater than `$20` and up to `$100`.
+- Requires net inflow inside the configured range, currently `$20` to `$100`.
+- Requires the sell-leg premium to be no more than `60%` of the buy-leg premium.
 - Requires a negative same-gap, same-ratio ATM reference spread before alerting.
 - Sends matching opportunities to a Telegram group.
 
@@ -29,10 +30,12 @@ Current live filters:
 
 - Underlying: BTC only
 - Data mode: REST polling
+- Strategy side: calls only
 - Ratios: `1:3` to `1:8`
-- Net inflow: `> 20` and `<= 100`
+- Net inflow: `>= 20` and `<= 100`
 - Minimum buy-leg OTM distance: `2000`
 - Strike gap: configurable, currently no fixed min/max
+- Maximum sell premium versus buy premium: `60%`
 - Confirmation: same-gap ATM spread must be negative
 - Cooldown: `900` seconds
 - Re-alert: enabled if net inflow improves by `$20` or more
